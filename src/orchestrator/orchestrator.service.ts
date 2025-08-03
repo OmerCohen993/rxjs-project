@@ -9,11 +9,10 @@ import {
   map,
 } from 'rxjs/operators';
 import * as toposort from 'toposort';
-import { Task } from './task.interface';
-import { tasks } from './tasks';
+import { Task, tasks } from '../tasks/index';
 
 @Injectable()
-export class TaskOrchestratorService implements OnModuleInit {
+export class OrchestratorService implements OnModuleInit {
   private order: string[] = [];
   private taskMap = new Map<string, Task>();
 
@@ -94,4 +93,4 @@ export class TaskOrchestratorService implements OnModuleInit {
     cache.set(name, result$);
     return result$;
   }
-}
+} 

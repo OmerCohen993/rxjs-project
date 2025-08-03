@@ -1,12 +1,12 @@
 import { Controller, Get } from '@nestjs/common';
-import { TaskOrchestratorService } from './task-orchestrator.service';
+import { OrchestratorService } from '../orchestrator/orchestrator.service';
 
 @Controller('tasks')
 export class TaskController {
-  constructor(private readonly orchestrator: TaskOrchestratorService) {}
+  constructor(private readonly orchestrator: OrchestratorService) {}
 
   @Get('run')
   run() {
     return this.orchestrator.runAll();
   }
-}
+} 
