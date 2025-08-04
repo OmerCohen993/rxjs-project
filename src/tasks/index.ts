@@ -1,4 +1,4 @@
-export { Task } from './task.interface';
+export { Task } from './task.abstract';
 export { taskA } from './task-a';
 export { taskB } from './task-b';
 export { taskC } from './task-c';
