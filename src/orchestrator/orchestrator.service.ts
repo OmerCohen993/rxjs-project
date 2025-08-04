@@ -12,6 +12,7 @@ import {
 import * as toposort from 'toposort';
 import { Task, tasks } from '../tasks/index';
 import { TaskResult } from '../tasks/types/task-result.interface';
+import { initializeTasks } from './utils/task-initializer.util';
 
 @Injectable()
 export class OrchestratorService implements OnModuleInit {
@@ -19,46 +20,7 @@ export class OrchestratorService implements OnModuleInit {
   private taskMap = new Map<string, Task>();
 
   onModuleInit() {
-    this.initializeTasks();
-  }
-
-  private initializeTasks() {
-    // Clear existing data
-    this.taskMap.clear();
-    
-    // Register all tasks
-    for (const task of tasks) {
-      this.taskMap.set(task.name, task);
-    }
-
-    // Build dependency graph
-    const edges: [string, string][] = [];
-    const allNodes = new Set<string>();
-    
-    for (const task of tasks) {
-      allNodes.add(task.name);
-      for (const dep of task.deps) {
-        if (!this.taskMap.has(dep)) {
-          throw new Error(`Task ${task.name} depends on unknown task: ${dep}`);
-        }
-        edges.push([dep, task.name]);
-        allNodes.add(dep);
-      }
-    }
-
-    try {
-      // Get topological order
-      this.order = toposort(edges);
-      
-      // Add nodes with no dependencies that might not be in edges
-      for (const node of allNodes) {
-        if (!this.order.includes(node)) {
-          this.order.unshift(node);
-        }
-      }
-    } catch (error) {
-      throw new Error(`Circular dependency detected in tasks: ${error.message}`);
-    }
+    this.order = initializeTasks(tasks, this.taskMap);
   }
 
   runAll(): Observable<TaskResult[]> {
@@ -72,6 +34,7 @@ export class OrchestratorService implements OnModuleInit {
 
   runTask(taskName: string): Observable<TaskResult> {
     const cache = new Map<string, Observable<TaskResult>>();
+    console.log(cache)
     return this.runTaskInternal(taskName, cache);
   }
 
