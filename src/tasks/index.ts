@@ -1,4 +1,5 @@
 export { Task } from './task.abstract';
+export { TaskResult } from './types/task-result.interface';
 export { taskA } from './task-a';
 export { taskB } from './task-b';
 export { taskC } from './task-c';
@@ -11,4 +12,4 @@ import { taskC } from './task-c';
 import { taskD } from './task-d';
 import { taskE } from './task-e';
 
-export const tasks = [taskA, taskB, taskC, taskD, taskE]; 
+export const tasks = [taskA, taskB, taskC, taskD, taskE];
