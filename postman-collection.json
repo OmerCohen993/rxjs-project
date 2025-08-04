@@ -1,0 +1,435 @@
+{
+    "info": {
+      "name": "RxJS Task Orchestrator",
+      "description": "API collection for testing the NestJS RxJS Task Orchestration system",
+      "version": "1.0.0",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+      {
+        "key": "baseUrl",
+        "value": "http://localhost:3000",
+        "type": "string"
+      }
+    ],
+    "item": [
+      {
+        "name": "Health Check",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/",
+            "host": ["{{baseUrl}}"],
+            "path": [""]
+          },
+          "description": "Basic health check endpoint - should return 'Hello World!'"
+        },
+        "response": []
+      },
+      {
+        "name": "Get Task Information",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/tasks/info",
+            "host": ["{{baseUrl}}"],
+            "path": ["tasks", "info"]
+          },
+          "description": "Get information about registered tasks, execution order, and dependencies"
+        },
+        "response": [
+          {
+            "name": "Success Response",
+            "originalRequest": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/tasks/info",
+                "host": ["{{baseUrl}}"],
+                "path": ["tasks", "info"]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "cookie": [],
+            "body": "{\n  \"registeredTasks\": [\"A\", \"B\", \"C\", \"D\", \"E\"],\n  \"executionOrder\": [\"A\", \"B\", \"C\", \"D\", \"E\"],\n  \"dependencies\": {\n    \"A\": [],\n    \"B\": [\"A\"],\n    \"C\": [\"A\"],\n    \"D\": [\"A\", \"B\"],\n    \"E\": [\"C\"]\n  }\n}"
+          }
+        ]
+      },
+      {
+        "name": "Run All Tasks",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/tasks/run",
+            "host": ["{{baseUrl}}"],
+            "path": ["tasks", "run"]
+          },
+          "description": "Execute all tasks in dependency order. Task B has a 50% failure rate, so results will vary."
+        },
+        "response": [
+          {
+            "name": "All Tasks Success",
+            "originalRequest": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/tasks/run",
+                "host": ["{{baseUrl}}"],
+                "path": ["tasks", "run"]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "cookie": [],
+            "body": "[\n  {\n    \"name\": \"A\",\n    \"content\": { \"name\": \"A\", \"content\": \"A result\" },\n    \"status\": \"success\",\n    \"durationMs\": 5\n  },\n  {\n    \"name\": \"B\",\n    \"content\": { \"name\": \"B\", \"content\": \"B result\" },\n    \"status\": \"success\",\n    \"durationMs\": 25\n  },\n  {\n    \"name\": \"C\",\n    \"content\": { \"name\": \"C\", \"content\": \"C result\" },\n    \"status\": \"success\",\n    \"durationMs\": 15\n  },\n  {\n    \"name\": \"D\",\n    \"content\": { \"name\": \"D\", \"content\": \"D result\" },\n    \"status\": \"success\",\n    \"durationMs\": 55\n  },\n  {\n    \"name\": \"E\",\n    \"content\": { \"name\": \"E\", \"content\": \"E result\" },\n    \"status\": \"success\",\n    \"durationMs\": 15\n  }\n]"
+          },
+          {
+            "name": "Task B Fails - D Skipped",
+            "originalRequest": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/tasks/run",
+                "host": ["{{baseUrl}}"],
+                "path": ["tasks", "run"]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "cookie": [],
+            "body": "[\n  {\n    \"name\": \"A\",\n    \"content\": { \"name\": \"A\", \"content\": \"A result\" },\n    \"status\": \"success\",\n    \"durationMs\": 3\n  },\n  {\n    \"name\": \"B\",\n    \"status\": \"error\",\n    \"error\": \"Simulated failure in task B\",\n    \"durationMs\": 2\n  },\n  {\n    \"name\": \"C\",\n    \"content\": { \"name\": \"C\", \"content\": \"C result\" },\n    \"status\": \"success\",\n    \"durationMs\": 12\n  },\n  {\n    \"name\": \"D\",\n    \"status\": \"skipped\",\n    \"error\": \"Dependencies failed for D: B\"\n  },\n  {\n    \"name\": \"E\",\n    \"content\": { \"name\": \"E\", \"content\": \"E result\" },\n    \"status\": \"success\",\n    \"durationMs\": 12\n  }\n]"
+          }
+        ]
+      },
+      {
+        "name": "Run Task A",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/tasks/run/A",
+            "host": ["{{baseUrl}}"],
+            "path": ["tasks", "run", "A"]
+          },
+          "description": "Execute only Task A (no dependencies)"
+        },
+        "response": [
+          {
+            "name": "Task A Success",
+            "originalRequest": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/tasks/run/A",
+                "host": ["{{baseUrl}}"],
+                "path": ["tasks", "run", "A"]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "cookie": [],
+            "body": "{\n  \"name\": \"A\",\n  \"content\": { \"name\": \"A\", \"content\": \"A result\" },\n  \"status\": \"success\",\n  \"durationMs\": 3\n}"
+          }
+        ]
+      },
+      {
+        "name": "Run Task B",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/tasks/run/B",
+            "host": ["{{baseUrl}}"],
+            "path": ["tasks", "run", "B"]
+          },
+          "description": "Execute Task B (depends on A). Has 50% chance of failure."
+        },
+        "response": [
+          {
+            "name": "Task B Success",
+            "originalRequest": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/tasks/run/B",
+                "host": ["{{baseUrl}}"],
+                "path": ["tasks", "run", "B"]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "cookie": [],
+            "body": "{\n  \"name\": \"B\",\n  \"content\": { \"name\": \"B\", \"content\": \"B result\" },\n  \"status\": \"success\",\n  \"durationMs\": 23\n}"
+          },
+          {
+            "name": "Task B Failure",
+            "originalRequest": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/tasks/run/B",
+                "host": ["{{baseUrl}}"],
+                "path": ["tasks", "run", "B"]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "cookie": [],
+            "body": "{\n  \"name\": \"B\",\n  \"status\": \"error\",\n  \"error\": \"Simulated failure in task B\",\n  \"durationMs\": 1\n}"
+          }
+        ]
+      },
+      {
+        "name": "Run Task C",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/tasks/run/C",
+            "host": ["{{baseUrl}}"],
+            "path": ["tasks", "run", "C"]
+          },
+          "description": "Execute Task C (depends on A). Should always succeed."
+        },
+        "response": [
+          {
+            "name": "Task C Success",
+            "originalRequest": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/tasks/run/C",
+                "host": ["{{baseUrl}}"],
+                "path": ["tasks", "run", "C"]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "cookie": [],
+            "body": "{\n  \"name\": \"C\",\n  \"content\": { \"name\": \"C\", \"content\": \"C result\" },\n  \"status\": \"success\",\n  \"durationMs\": 13\n}"
+          }
+        ]
+      },
+      {
+        "name": "Run Task D",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/tasks/run/D",
+            "host": ["{{baseUrl}}"],
+            "path": ["tasks", "run", "D"]
+          },
+          "description": "Execute Task D (depends on A and B). Will be skipped if B fails."
+        },
+        "response": [
+          {
+            "name": "Task D Success (B succeeded)",
+            "originalRequest": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/tasks/run/D",
+                "host": ["{{baseUrl}}"],
+                "path": ["tasks", "run", "D"]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "cookie": [],
+            "body": "{\n  \"name\": \"D\",\n  \"content\": { \"name\": \"D\", \"content\": \"D result\" },\n  \"status\": \"success\",\n  \"durationMs\": 53\n}"
+          },
+          {
+            "name": "Task D Skipped (B failed)",
+            "originalRequest": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/tasks/run/D",
+                "host": ["{{baseUrl}}"],
+                "path": ["tasks", "run", "D"]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "cookie": [],
+            "body": "{\n  \"name\": \"D\",\n  \"status\": \"skipped\",\n  \"error\": \"Dependencies failed for D: B\"\n}"
+          }
+        ]
+      },
+      {
+        "name": "Run Task E",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/tasks/run/E",
+            "host": ["{{baseUrl}}"],
+            "path": ["tasks", "run", "E"]
+          },
+          "description": "Execute Task E (depends on C). Should always succeed since C depends on A which never fails."
+        },
+        "response": [
+          {
+            "name": "Task E Success",
+            "originalRequest": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/tasks/run/E",
+                "host": ["{{baseUrl}}"],
+                "path": ["tasks", "run", "E"]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "cookie": [],
+            "body": "{\n  \"name\": \"E\",\n  \"content\": { \"name\": \"E\", \"content\": \"E result\" },\n  \"status\": \"success\",\n  \"durationMs\": 12\n}"
+          }
+        ]
+      },
+      {
+        "name": "Run Non-existent Task",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/tasks/run/INVALID",
+            "host": ["{{baseUrl}}"],
+            "path": ["tasks", "run", "INVALID"]
+          },
+          "description": "Test error handling by trying to run a task that doesn't exist"
+        },
+        "response": [
+          {
+            "name": "Task Not Found Error",
+            "originalRequest": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/tasks/run/INVALID",
+                "host": ["{{baseUrl}}"],
+                "path": ["tasks", "run", "INVALID"]
+              }
+            },
+            "status": "Internal Server Error",
+            "code": 500,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "cookie": [],
+            "body": "{\n  \"message\": \"Task INVALID failed: Task not found: INVALID\",\n  \"error\": \"Internal Server Error\",\n  \"statusCode\": 500\n}"
+          }
+        ]
+      }
+    ],
+    "event": [
+      {
+        "listen": "prerequest",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "// Auto-set baseUrl if not already set",
+            "if (!pm.environment.get('baseUrl') && !pm.collectionVariables.get('baseUrl')) {",
+            "    pm.collectionVariables.set('baseUrl', 'http://localhost:3000');",
+            "}"
+          ]
+        }
+      },
+      {
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "// Basic response time test",
+            "pm.test('Response time is reasonable', function () {",
+            "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+            "});",
+            "",
+            "// Test that we get a response",
+            "pm.test('Status code is not 404', function () {",
+            "    pm.expect(pm.response.code).to.not.equal(404);",
+            "});"
+          ]
+        }
+      }
+    ]
+  }

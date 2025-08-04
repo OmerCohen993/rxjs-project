@@ -1,3 +1,4 @@
+// src/orchestrator/orchestrator.service.ts
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { from, forkJoin, Observable, of, throwError } from 'rxjs';
 import {
@@ -10,6 +11,7 @@ import {
 } from 'rxjs/operators';
 import * as toposort from 'toposort';
 import { Task, tasks } from '../tasks/index';
+import { TaskResult } from '../tasks/types/task-result.interface';
 
 @Injectable()
 export class OrchestratorService implements OnModuleInit {
@@ -17,75 +19,136 @@ export class OrchestratorService implements OnModuleInit {
   private taskMap = new Map<string, Task>();
 
   onModuleInit() {
+    this.initializeTasks();
+  }
+
+  private initializeTasks() {
+    // Clear existing data
+    this.taskMap.clear();
+    
+    // Register all tasks
     for (const task of tasks) {
       this.taskMap.set(task.name, task);
     }
 
+    // Build dependency graph
     const edges: [string, string][] = [];
+    const allNodes = new Set<string>();
+    
     for (const task of tasks) {
+      allNodes.add(task.name);
       for (const dep of task.deps) {
+        if (!this.taskMap.has(dep)) {
+          throw new Error(`Task ${task.name} depends on unknown task: ${dep}`);
+        }
         edges.push([dep, task.name]);
+        allNodes.add(dep);
       }
     }
 
-    this.order = toposort(edges);
-    console.log('Execution order:', this.order);
+    try {
+      // Get topological order
+      this.order = toposort(edges);
+      
+      // Add nodes with no dependencies that might not be in edges
+      for (const node of allNodes) {
+        if (!this.order.includes(node)) {
+          this.order.unshift(node);
+        }
+      }
+    } catch (error) {
+      throw new Error(`Circular dependency detected in tasks: ${error.message}`);
+    }
   }
 
-  runAll(): Observable<any[]> {
-    const cache = new Map<string, Observable<any>>();
+  runAll(): Observable<TaskResult[]> {
+    const cache = new Map<string, Observable<TaskResult>>();
 
     return from(this.order).pipe(
-      concatMap(name => this.runTask(name, cache)),
+      concatMap(name => this.runTaskInternal(name, cache)),
       toArray()
     );
   }
 
-  private runTask(name: string, cache: Map<string, Observable<any>>): Observable<any> {
+  runTask(taskName: string): Observable<TaskResult> {
+    const cache = new Map<string, Observable<TaskResult>>();
+    return this.runTaskInternal(taskName, cache);
+  }
+
+  private runTaskInternal(name: string, cache: Map<string, Observable<TaskResult>>): Observable<TaskResult> {
     if (cache.has(name)) {
       return cache.get(name)!;
     }
 
     const task = this.taskMap.get(name);
-    if (!task) throw new Error(`Task not found: ${name}`);
+    if (!task) {
+      const error = `Task not found: ${name}`;
+      return throwError(() => new Error(error));
+    }
 
-    const deps$ = task.deps.length
-      ? forkJoin(task.deps.map(dep => this.runTask(dep, cache))).pipe(
-          mergeMap((results: any[]) => {
-            const failedDep = results.find(r => r?.status === 'error');
-            if (failedDep) {
-              return throwError(() =>
-                new Error(`Dependency failed for ${name}: ${failedDep.name}`)
-              );
+    // Handle dependencies
+    const deps$ = task.deps.length > 0
+      ? forkJoin(
+          task.deps.map(dep => this.runTaskInternal(dep, cache))
+        ).pipe(
+          mergeMap((results: TaskResult[]) => {
+            const failedDeps = results.filter(r => r.status === 'error');
+            if (failedDeps.length > 0) {
+              const errorMsg = `Dependencies failed for ${name}: ${failedDeps.map(d => d.name).join(', ')}`;
+              return of({
+                name,
+                status: 'skipped' as const,
+                error: errorMsg,
+              } as TaskResult);
             }
-            return of(null);
-          }),
-          catchError(err => {
-            console.error(`Dependency failed for ${name}:`, err);
-            return throwError(() => err);
+            return of(results);
           })
         )
-      : of(null);
+      : of([] as TaskResult[]);
 
     const result$ = deps$.pipe(
-      mergeMap(() => {
-        const start = Date.now();
+      mergeMap((depResults: TaskResult[] | TaskResult) => {
+        // Handle the case where deps$ returns a single TaskResult (when dependency failed)
+        if (!Array.isArray(depResults)) {
+          // This means a dependency failed and we got a single 'skipped' result
+          return of(depResults);
+        }
+        
+        // Skip if any dependency was skipped
+        if (depResults.some(r => r.status === 'skipped')) {
+          return of({
+            name,
+            status: 'skipped' as const,
+            error: 'Skipped due to failed dependencies',
+          } as TaskResult);
+        }
+
+        // Run the actual task
+        const startTime = Date.now();
+
         return task.run().pipe(
-          map(data => ({
-            name: task.name,
-            content: data?.content ?? data,
-            status: 'success',
-            durationMs: Date.now() - start,
-          }))
+          map(data => {
+            const duration = Date.now() - startTime;
+            
+            return {
+              name: task.name,
+              content: data?.content ?? data,
+              status: 'success' as const,
+              durationMs: duration,
+            } as TaskResult;
+          }),
+          catchError(err => {
+            const duration = Date.now() - startTime;
+            const errorMsg = err?.message ?? err?.toString() ?? 'Unknown error';
+            
+            return of({
+              name,
+              status: 'error' as const,
+              error: errorMsg,
+              durationMs: duration,
+            } as TaskResult);
+          })
         );
-      }),
-      catchError(err => {
-        console.error(`Task failed: ${name}`, err);
-        return of({
-          name,
-          status: 'error',
-          error: err?.message ?? err,
-        });
       }),
       shareReplay(1)
     );
@@ -93,4 +156,14 @@ export class OrchestratorService implements OnModuleInit {
     cache.set(name, result$);
     return result$;
   }
-} 
+
+  getTaskInfo() {
+    return {
+      registeredTasks: Array.from(this.taskMap.keys()),
+      executionOrder: this.order,
+      dependencies: Object.fromEntries(
+        Array.from(this.taskMap.entries()).map(([name, task]) => [name, task.deps])
+      ),
+    };
+  }
+}
