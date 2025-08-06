@@ -87,7 +87,7 @@
               }
             ]
           },
-          "description": "Execute all tasks in dependency order starting with Task A (string compression). Task B has a 50% failure rate, so results will vary."
+          "description": "Execute all tasks in dependency order starting with Task A (string compression). Returns detailed results for all tasks."
         },
         "response": [
           {
@@ -135,6 +135,79 @@
             ],
             "cookie": [],
             "body": "[\n  {\n    \"name\": \"A\",\n    \"content\": { \"name\": \"A\", \"content\": \"A result\" },\n    \"status\": \"success\",\n    \"durationMs\": 3\n  },\n  {\n    \"name\": \"B\",\n    \"status\": \"error\",\n    \"error\": \"Simulated failure in task B\",\n    \"durationMs\": 2\n  },\n  {\n    \"name\": \"C\",\n    \"content\": { \"name\": \"C\", \"content\": \"C result\" },\n    \"status\": \"success\",\n    \"durationMs\": 12\n  },\n  {\n    \"name\": \"D\",\n    \"status\": \"skipped\",\n    \"error\": \"Dependencies failed for D: B\"\n  },\n  {\n    \"name\": \"E\",\n    \"content\": { \"name\": \"E\", \"content\": \"E result\" },\n    \"status\": \"success\",\n    \"durationMs\": 12\n  }\n]"
+          }
+        ]
+      },
+      {
+        "name": "Run All Tasks (Final Result)",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/tasks/run/final?id=AABBBCCCC&idVerification=XYZ123",
+            "host": ["{{baseUrl}}"],
+            "path": ["tasks", "run", "final"],
+            "query": [
+              {
+                "key": "id",
+                "value": "AABBBCCCC",
+                "description": "ID string to be compressed by Task A"
+              },
+              {
+                "key": "idVerification",
+                "value": "XYZ123",
+                "description": "ID verification string to be compressed by Task A"
+              }
+            ]
+          },
+          "description": "Execute all tasks in dependency order and return only the final task's result with execution summary."
+        },
+        "response": [
+          {
+            "name": "Final Result Success",
+            "originalRequest": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/tasks/run/final",
+                "host": ["{{baseUrl}}"],
+                "path": ["tasks", "run", "final"]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "cookie": [],
+            "body": "{\n  \"finalAnswer\": {\n    \"originalInput\": {\n      \"id\": \"AABBBCCCC\",\n      \"idVerification\": \"XYZ123\"\n    },\n    \"compression\": {\n      \"originalId\": \"AABBBCCCC\",\n      \"originalIdVerification\": \"XYZ123\",\n      \"compressedId\": \"2A3B4C\",\n      \"compressedVerification\": \"XYZ123\",\n      \"compressionRatio\": {\n        \"id\": \"33.33%\",\n        \"verification\": \"0.00%\"\n      }\n    },\n    \"upperCase\": {\n      \"originalStr1\": \"AABBBCCCC\",\n      \"originalStr2\": \"XYZ123\",\n      \"upperStr1\": \"AABBBCCCC\",\n      \"upperStr2\": \"XYZ123\"\n    },\n    \"taskCResult\": {\n      \"name\": \"C\",\n      \"content\": \"C result\",\n      \"status\": \"success\"\n    },\n    \"taskDResult\": {\n      \"name\": \"D\",\n      \"content\": \"D result\",\n      \"status\": \"success\"\n    },\n    \"taskEResult\": {\n      \"name\": \"E\",\n      \"content\": \"E result\",\n      \"status\": \"success\"\n    }\n  },\n  \"totalTasksExecuted\": 5,\n  \"executionTime\": 115,\n  \"successfulTasks\": [\"A\", \"B\", \"C\", \"D\", \"E\"],\n  \"failedTasks\": [],\n  \"skippedTasks\": []\n}"
+          },
+          {
+            "name": "Final Result with Some Tasks Skipped",
+            "originalRequest": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/tasks/run/final",
+                "host": ["{{baseUrl}}"],
+                "path": ["tasks", "run", "final"]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "cookie": [],
+            "body": "{\n  \"finalAnswer\": {\n    \"originalInput\": {\n      \"id\": \"AABBBCCCC\",\n      \"idVerification\": \"XYZ123\"\n    },\n    \"compression\": {\n      \"originalId\": \"AABBBCCCC\",\n      \"originalIdVerification\": \"XYZ123\",\n      \"compressedId\": \"2A3B4C\",\n      \"compressedVerification\": \"XYZ123\",\n      \"compressionRatio\": {\n        \"id\": \"33.33%\",\n        \"verification\": \"0.00%\"\n      }\n    },\n    \"taskCResult\": {\n      \"name\": \"C\",\n      \"content\": \"C result\",\n      \"status\": \"success\"\n    },\n    \"taskEResult\": {\n      \"name\": \"E\",\n      \"content\": \"E result\",\n      \"status\": \"success\"\n    }\n  },\n  \"totalTasksExecuted\": 4,\n  \"executionTime\": 29,\n  \"successfulTasks\": [\"A\", \"C\", \"E\"],\n  \"failedTasks\": [\"B\"],\n  \"skippedTasks\": [\"D\"]\n}"
           }
         ]
       },
