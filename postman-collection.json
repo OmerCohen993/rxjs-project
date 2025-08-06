@@ -523,6 +523,62 @@
             "body": "{\n  \"status\": \"success\",\n  \"message\": \"Strings compressed successfully\",\n  \"data\": {\n    \"originalId\": \"\",\n    \"originalIdVerification\": \"\",\n    \"compressedId\": \"\",\n    \"compressedVerification\": \"\",\n    \"compressionRatio\": {\n      \"id\": \"NaN%\",\n      \"verification\": \"NaN%\"\n    }\n  }\n}"
           }
         ]
+      },
+      {
+        "name": "String Upper Class - To Upper Case",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"str1\": \"hello\",\n  \"str2\": \"world\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/string-upper-class/upper",
+            "host": ["{{baseUrl}}"],
+            "path": ["string-upper-class", "upper"]
+          },
+          "description": "Convert two strings (str1 and str2) to upper case letters."
+        },
+        "response": [
+          {
+            "name": "Successful Upper Case Conversion",
+            "originalRequest": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"str1\": \"hello\",\n  \"str2\": \"world\"\n}"
+              },
+              "url": {
+                "raw": "{{baseUrl}}/string-upper-class/upper",
+                "host": ["{{baseUrl}}"],
+                "path": ["string-upper-class", "upper"]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "cookie": [],
+            "body": "{\n  \"status\": \"success\",\n  \"message\": \"Strings converted to upper class successfully\",\n  \"data\": {\n    \"originalStr1\": \"hello\",\n    \"originalStr2\": \"world\",\n    \"upperStr1\": \"HELLO\",\n    \"upperStr2\": \"WORLD\"\n  }\n}"
+          }
+        ]
       }
     ],
     "event": [
