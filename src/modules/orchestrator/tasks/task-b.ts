@@ -6,11 +6,16 @@ export class TaskB extends Task<any> {
   readonly name = 'B';
   readonly deps: string[] = ['A'];
 
-  run() {
+  run(input: { compressionResult: any; status: string }) {
     const fail = Math.random() < 0.5;
     return fail
       ? throwError(() => new Error('Simulated failure in task B'))
-      : of('B').pipe(delay(20), map(v => ({ name: v, content: 'B result' })));
+      : of('B').pipe(delay(20), map(v => ({ 
+          name: v, 
+          content: 'B result',
+          status: 'success',
+          previousTaskData: input
+        })));
   }
 }
 

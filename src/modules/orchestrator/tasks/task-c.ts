@@ -6,8 +6,13 @@ export class TaskC extends Task<any> {
   readonly name = 'C';
   readonly deps: string[] = ['A'];
 
-  run() {
-    return of('C').pipe(delay(10), map(v => ({ name: v, content: 'C result' })));
+  run(input: { compressionResult: any; status: string }) {
+    return of('C').pipe(delay(10), map(v => ({ 
+      name: v, 
+      content: 'C result',
+      status: 'success',
+      previousTaskData: input
+    })));
   }
 }
 

@@ -13,32 +13,45 @@ import * as toposort from 'toposort';
 import { Task, tasks } from '../tasks/index';
 import { TaskResult } from '../tasks/types/task-result.interface';
 import { initializeTasks } from './utils/task-initializer.util';
+import { StringCompressionService } from '../../string-compression/service/string-compression.service';
+import { createTaskA } from '../tasks/task-a';
+import { taskB, taskC, taskD, taskE } from '../tasks/index';
 
 @Injectable()
 export class OrchestratorService implements OnModuleInit {
   private order: string[] = [];
   private taskMap = new Map<string, Task>();
 
+  constructor(private readonly stringCompressionService: StringCompressionService) {}
+
   onModuleInit() {
-    this.order = initializeTasks(tasks, this.taskMap);
+    // Create task instances with dependency injection
+    const taskA = createTaskA(this.stringCompressionService);
+    const allTasks = [taskA, taskB, taskC, taskD, taskE];
+    
+    this.order = initializeTasks(allTasks, this.taskMap);
   }
 
-  runAll(): Observable<TaskResult[]> {
+  runAll(initialInput: { id: string; idVerification: string }): Observable<TaskResult[]> {
     const cache = new Map<string, Observable<TaskResult>>();
 
     return from(this.order).pipe(
-      concatMap(name => this.runTaskInternal(name, cache)),
+      concatMap(name => this.runTaskInternal(name, cache, initialInput)),
       toArray()
     );
   }
 
-  runTask(taskName: string): Observable<TaskResult> {
+  runTask(taskName: string, initialInput: { id: string; idVerification: string }): Observable<TaskResult> {
     const cache = new Map<string, Observable<TaskResult>>();
     console.log(cache)
-    return this.runTaskInternal(taskName, cache);
+    return this.runTaskInternal(taskName, cache, initialInput);
   }
 
-  private runTaskInternal(name: string, cache: Map<string, Observable<TaskResult>>): Observable<TaskResult> {
+  private runTaskInternal(
+    name: string, 
+    cache: Map<string, Observable<TaskResult>>, 
+    initialInput?: any
+  ): Observable<TaskResult> {
     if (cache.has(name)) {
       return cache.get(name)!;
     }
@@ -52,7 +65,7 @@ export class OrchestratorService implements OnModuleInit {
     // Handle dependencies
     const deps$ = task.deps.length > 0
       ? forkJoin(
-          task.deps.map(dep => this.runTaskInternal(dep, cache))
+          task.deps.map(dep => this.runTaskInternal(dep, cache, initialInput))
         ).pipe(
           mergeMap((results: TaskResult[]) => {
             const failedDeps = results.filter(r => r.status === 'error');
@@ -86,17 +99,20 @@ export class OrchestratorService implements OnModuleInit {
           } as TaskResult);
         }
 
-        // Run the actual task
+        // Run the actual task with input from dependencies
         const startTime = Date.now();
+        const taskInput = Array.isArray(depResults) && depResults.length > 0 
+          ? depResults  // Pass all dependency results
+          : initialInput;
 
-        return task.run().pipe(
+        return task.run(taskInput).pipe(
           map(data => {
             const duration = Date.now() - startTime;
             
             return {
               name: task.name,
-              content: data?.content ?? data,
-              status: 'success' as const,
+              content: data,
+              status: data?.status || 'success',
               durationMs: duration,
             } as TaskResult;
           }),
@@ -106,7 +122,7 @@ export class OrchestratorService implements OnModuleInit {
             
             return of({
               name,
-              status: 'error' as const,
+              status: 'error',
               error: errorMsg,
               durationMs: duration,
             } as TaskResult);

@@ -71,11 +71,23 @@
           "method": "GET",
           "header": [],
           "url": {
-            "raw": "{{baseUrl}}/tasks/run",
+            "raw": "{{baseUrl}}/tasks/run?id=AABBBCCCC&idVerification=XYZ123",
             "host": ["{{baseUrl}}"],
-            "path": ["tasks", "run"]
+            "path": ["tasks", "run"],
+            "query": [
+              {
+                "key": "id",
+                "value": "AABBBCCCC",
+                "description": "ID string to be compressed by Task A"
+              },
+              {
+                "key": "idVerification",
+                "value": "XYZ123",
+                "description": "ID verification string to be compressed by Task A"
+              }
+            ]
           },
-          "description": "Execute all tasks in dependency order. Task B has a 50% failure rate, so results will vary."
+          "description": "Execute all tasks in dependency order starting with Task A (string compression). Task B has a 50% failure rate, so results will vary."
         },
         "response": [
           {
@@ -132,11 +144,23 @@
           "method": "GET",
           "header": [],
           "url": {
-            "raw": "{{baseUrl}}/tasks/run/A",
+            "raw": "{{baseUrl}}/tasks/run/A?id=AABBBCCCC&idVerification=XYZ123",
             "host": ["{{baseUrl}}"],
-            "path": ["tasks", "run", "A"]
+            "path": ["tasks", "run", "A"],
+            "query": [
+              {
+                "key": "id",
+                "value": "AABBBCCCC",
+                "description": "ID string to be compressed"
+              },
+              {
+                "key": "idVerification",
+                "value": "XYZ123",
+                "description": "ID verification string to be compressed"
+              }
+            ]
           },
-          "description": "Execute only Task A (no dependencies)"
+          "description": "Execute only Task A (string compression) with the provided strings"
         },
         "response": [
           {
@@ -160,7 +184,7 @@
               }
             ],
             "cookie": [],
-            "body": "{\n  \"name\": \"A\",\n  \"content\": { \"name\": \"A\", \"content\": \"A result\" },\n  \"status\": \"success\",\n  \"durationMs\": 3\n}"
+            "body": "{\n  \"name\": \"A\",\n  \"content\": {\n    \"name\": \"A\",\n    \"content\": \"A result\",\n    \"compressionResult\": {\n      \"originalId\": \"AABBBCCCC\",\n      \"originalIdVerification\": \"XYZ123\",\n      \"compressedId\": \"2A3B4C\",\n      \"compressedVerification\": \"XYZ123\",\n      \"compressionRatio\": {\n        \"id\": \"33.33%\",\n        \"verification\": \"0.00%\"\n      }\n    }\n  },\n  \"status\": \"success\",\n  \"durationMs\": 3\n}"
           }
         ]
       },
@@ -170,9 +194,21 @@
           "method": "GET",
           "header": [],
           "url": {
-            "raw": "{{baseUrl}}/tasks/run/B",
+            "raw": "{{baseUrl}}/tasks/run/B?id=AABBBCCCC&idVerification=XYZ123",
             "host": ["{{baseUrl}}"],
-            "path": ["tasks", "run", "B"]
+            "path": ["tasks", "run", "B"],
+            "query": [
+              {
+                "key": "id",
+                "value": "AABBBCCCC",
+                "description": "ID string (required for all tasks)"
+              },
+              {
+                "key": "idVerification",
+                "value": "XYZ123",
+                "description": "ID verification string (required for all tasks)"
+              }
+            ]
           },
           "description": "Execute Task B (depends on A). Has 50% chance of failure."
         },
