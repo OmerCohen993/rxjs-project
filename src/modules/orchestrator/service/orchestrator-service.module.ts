@@ -7,4 +7,4 @@ import { TasksModule } from '../tasks/tasks.module';
   providers: [OrchestratorService],
   exports: [OrchestratorService],
 })
-export class OrchestratorModule {} 
+export class OrchestratorServiceModule {} 

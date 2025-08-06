@@ -1,6 +1,6 @@
-// src/controllers/controller.ts
+// src/orchestrator/controllers/task.controller.ts
 import { Controller, Get, Param, HttpException, HttpStatus } from '@nestjs/common';
-import { OrchestratorService } from '../orchestrator/orchestrator.service';
+import { OrchestratorService } from '../service/orchestrator.service';
 import { TaskResult } from '../tasks/types/task-result.interface';
 import { Observable } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -37,4 +37,4 @@ export class TaskController {
   getTaskInfo() {
     return this.orchestrator.getTaskInfo();
   }
-}
+} 

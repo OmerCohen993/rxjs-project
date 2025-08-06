@@ -399,6 +399,94 @@
             "body": "{\n  \"message\": \"Task INVALID failed: Task not found: INVALID\",\n  \"error\": \"Internal Server Error\",\n  \"statusCode\": 500\n}"
           }
         ]
+      },
+      {
+        "name": "String Compression - Compress Strings",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id\": \"AABBBCCCC\",\n  \"idVerification\": \"XYZ123\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/string-compression/compress",
+            "host": ["{{baseUrl}}"],
+            "path": ["string-compression", "compress"]
+          },
+          "description": "Compress two strings (id and idVerification) using run-length encoding algorithm"
+        },
+        "response": [
+          {
+            "name": "Successful Compression",
+            "originalRequest": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"id\": \"AABBBCCCC\",\n  \"idVerification\": \"XYZ123\"\n}"
+              },
+              "url": {
+                "raw": "{{baseUrl}}/string-compression/compress",
+                "host": ["{{baseUrl}}"],
+                "path": ["string-compression", "compress"]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "cookie": [],
+            "body": "{\n  \"status\": \"success\",\n  \"message\": \"Strings compressed successfully\",\n  \"data\": {\n    \"originalId\": \"AABBBCCCC\",\n    \"originalIdVerification\": \"XYZ123\",\n    \"compressedId\": \"2A3B4C\",\n    \"compressedVerification\": \"XYZ123\",\n    \"compressionRatio\": {\n      \"id\": \"33.33%\",\n      \"verification\": \"0.00%\"\n    }\n  }\n}"
+          },
+          {
+            "name": "Compression with Empty Strings",
+            "originalRequest": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"id\": \"\",\n  \"idVerification\": \"\"\n}"
+              },
+              "url": {
+                "raw": "{{baseUrl}}/string-compression/compress",
+                "host": ["{{baseUrl}}"],
+                "path": ["string-compression", "compress"]
+              }
+            },
+            "status": "OK",
+            "code": 200,
+            "_postman_previewlanguage": "json",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "cookie": [],
+            "body": "{\n  \"status\": \"success\",\n  \"message\": \"Strings compressed successfully\",\n  \"data\": {\n    \"originalId\": \"\",\n    \"originalIdVerification\": \"\",\n    \"compressedId\": \"\",\n    \"compressedVerification\": \"\",\n    \"compressionRatio\": {\n      \"id\": \"NaN%\",\n      \"verification\": \"NaN%\"\n    }\n  }\n}"
+          }
+        ]
       }
     ],
     "event": [
