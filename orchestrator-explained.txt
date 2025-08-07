@@ -1,0 +1,376 @@
+# Orchestrator Module
+
+## Overview
+
+The Orchestrator module is a core component of the NestJS application that manages and coordinates the execution of various tasks in a controlled, sequential manner. It provides a centralized system for task management, dependency resolution, and execution flow control.
+
+## Architecture
+
+### Module Structure
+
+The Orchestrator module follows a layered architecture:
+
+```
+OrchestratorModule
+├── ControllersModule
+│   └── TaskController
+└── OrchestratorServiceModule
+    ├── OrchestratorService
+    └── TasksModule
+        └── FacialAuthTask
+```
+
+### Key Components
+
+#### OrchestratorService
+
+The main service responsible for:
+- Task initialization and registration
+- Dependency resolution using topological sorting
+- Sequential task execution
+- Result aggregation and caching
+- Error handling and recovery
+
+```ts
+@Injectable()
+export class OrchestratorService implements OnModuleInit {
+  private order: string[] = [];
+  private taskMap = new Map<string, Task>();
+
+  constructor(
+    private readonly facialAuthService: FacialAuthService
+  ) {}
+
+  onModuleInit() {
+    const facialAuthTask = createFacialAuthTask(this.facialAuthService);
+    const allTasks = [facialAuthTask];
+    this.order = initializeTasks(allTasks, this.taskMap);
+  }
+}
+```
+
+#### TaskController
+
+Provides REST API endpoints for:
+- `GET /tasks/run` - Execute all registered tasks
+- `GET /tasks/run/final` - Execute tasks with final answer format
+- `GET /tasks/run/:taskName` - Execute a specific task
+- `GET /tasks/info` - Get task information and dependencies
+
+```ts
+@Controller('tasks')
+export class TaskController {
+  constructor(private readonly orchestrator: OrchestratorService) {}
+
+  @Get('run')
+  runAll(@Query() params: TaskRunParams): Observable<TaskResult[]> {
+    const { id, idVerification } = params;
+    const facialAuthParams = { stringA: id, stringB: idVerification };
+    return this.orchestrator.runAll(facialAuthParams);
+  }
+}
+```
+
+#### FacialAuthTask
+
+A concrete implementation of the Task abstract class that:
+- Handles facial authentication requests
+- Converts input parameters to the required format
+- Processes authentication results
+- Returns standardized task results
+
+```ts
+export class FacialAuthTask extends Task<any> {
+  readonly name = 'FacialAuth';
+  readonly deps: string[] = [];
+
+  constructor(private readonly facialAuthService: FacialAuthService) {
+    super();
+  }
+
+  run(input?: any): Observable<any> {
+    const facialAuthData: FacialAuthParameters = {
+      stringA: input.stringA || '',
+      stringB: input.stringB || ''
+    };
+
+    return from(this.facialAuthService.compareStrings(facialAuthData)).pipe(
+      delay(100),
+      map((facialAuth: FacialAuthResult) => ({
+        name: 'FacialAuth',
+        content: 'Facial authentication completed',
+        facialAuthResult: {
+          score: facialAuth.score,
+          template: facialAuth.template,
+          isVerified: facialAuth.isVerified
+        },
+        status: facialAuth.isVerified ? 'success' : 'failed'
+      }))
+    );
+  }
+}
+```
+
+## Task Execution Flow
+
+### 1. Task Registration
+
+Tasks are registered during module initialization:
+
+```ts
+onModuleInit() {
+  const facialAuthTask = createFacialAuthTask(this.facialAuthService);
+  const allTasks = [facialAuthTask];
+  this.order = initializeTasks(allTasks, this.taskMap);
+}
+```
+
+### 2. Dependency Resolution
+
+The system uses topological sorting to determine execution order:
+- Analyzes task dependencies
+- Creates a dependency graph
+- Generates optimal execution sequence
+- Handles circular dependency detection
+
+```ts
+private runTaskInternal(
+  name: string, 
+  cache: Map<string, Observable<TaskResult>>, 
+  initialInput?: any,
+  accumulatedData: Map<string, any> = new Map()
+): Observable<TaskResult> {
+  if (cache.has(name)) {
+    return cache.get(name)!;
+  }
+
+  const task = this.taskMap.get(name);
+  if (!task) {
+    return throwError(() => new Error(`Task not found: ${name}`));
+  }
+
+  // Handle dependencies
+  const deps$ = task.deps.length > 0
+    ? forkJoin(
+        task.deps.map(dep => this.runTaskInternal(dep, cache, initialInput, accumulatedData))
+      )
+    : of([]);
+}
+```
+
+### 3. Execution Process
+
+Tasks are executed sequentially with the following features:
+- **Caching**: Results are cached to avoid redundant execution
+- **Error Handling**: Failed tasks don't stop the entire pipeline
+- **Data Accumulation**: Results from previous tasks are available to subsequent tasks
+- **Performance Tracking**: Execution time is measured for each task
+
+```ts
+runAll(initialInput: { stringA: string; stringB: string }): Observable<TaskResult[]> {
+  const cache = new Map<string, Observable<TaskResult>>();
+  const accumulatedData = new Map<string, any>();
+
+  return from(this.order).pipe(
+    concatMap(name => this.runTaskInternal(name, cache, initialInput, accumulatedData)),
+    toArray()
+  );
+}
+```
+
+## API Endpoints
+
+### Run All Tasks
+```
+GET /tasks/run?id={id}&idVerification={idVerification}
+```
+
+Executes all registered tasks in dependency order and returns an array of task results.
+
+### Run All Tasks (Final Format)
+```
+GET /tasks/run/final?id={id}&idVerification={idVerification}
+```
+
+Executes all tasks and returns a comprehensive response including:
+- Final answer combining all results
+- Total execution time
+- Success/failure statistics
+- Task execution details
+
+```ts
+runAllFinal(initialInput: { stringA: string; stringB: string }): Observable<any> {
+  return from(this.order).pipe(
+    concatMap(name => this.runTaskInternal(name, cache, initialInput, accumulatedData)),
+    toArray(),
+    map(results => ({
+      finalAnswer: this.createFinalAnswer(results, accumulatedData),
+      totalTasksExecuted: results.length,
+      executionTime: results.reduce((total, result) => total + (result.durationMs || 0), 0),
+      successfulTasks: results.filter(r => r.status === 'success').map(r => r.name),
+      failedTasks: results.filter(r => r.status === 'error').map(r => r.name)
+    }))
+  );
+}
+```
+
+### Run Specific Task
+```
+GET /tasks/run/{taskName}?id={id}&idVerification={idVerification}
+```
+
+Executes a single task by name and returns its result.
+
+### Get Task Information
+```
+GET /tasks/info
+```
+
+Returns metadata about registered tasks:
+- List of available tasks
+- Execution order
+- Dependency relationships
+
+```ts
+getTaskInfo() {
+  return {
+    registeredTasks: Array.from(this.taskMap.keys()),
+    executionOrder: this.order,
+    dependencies: Object.fromEntries(
+      Array.from(this.taskMap.entries()).map(([name, task]) => [name, task.deps])
+    )
+  };
+}
+```
+
+## Task Interface
+
+All tasks implement the Task abstract class:
+
+```ts
+abstract class Task<T> {
+  abstract readonly name: string;
+  abstract readonly deps: string[];
+  abstract run(input?: any): Observable<TaskResult>;
+}
+```
+
+### TaskResult Structure
+
+```ts
+interface TaskResult {
+  name: string;
+  content: any;
+  status: 'success' | 'error' | 'skipped';
+  durationMs?: number;
+}
+```
+
+## Error Handling
+
+The orchestrator implements comprehensive error handling:
+
+- **Task-Level Errors**: Individual task failures don't stop the pipeline
+- **Dependency Errors**: Failed dependencies are handled gracefully
+- **Input Validation**: Parameters are validated before execution
+- **HTTP Error Responses**: Proper HTTP status codes and error messages
+
+```ts
+@Get('run')
+runAll(@Query() params: TaskRunParams): Observable<TaskResult[]> {
+  const { id, idVerification } = params;
+  
+  if (!id || !idVerification) {
+    throw new HttpException(
+      'Both id and idVerification parameters are required',
+      HttpStatus.BAD_REQUEST
+    );
+  }
+
+  return this.orchestrator.runAll(facialAuthParams).pipe(
+    catchError(err => {
+      throw new HttpException(
+        `Orchestration failed: ${err.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    })
+  );
+}
+```
+
+## Performance Features
+
+- **Result Caching**: Prevents redundant task execution
+- **Sequential Execution**: Ensures predictable execution order
+- **Time Tracking**: Measures execution time for each task
+- **Memory Management**: Efficient data accumulation and cleanup
+
+## Integration
+
+The orchestrator integrates with:
+- **Facial Authentication Module**: For biometric verification tasks
+- **HTTP Consumer Module**: For external API calls
+- **String Processing Modules**: For text manipulation tasks
+
+```ts
+@Module({
+  imports: [
+    TasksModule, 
+    FacialAuthModule,
+    FacialReconHttpModule
+  ],
+  providers: [OrchestratorService],
+  exports: [OrchestratorService],
+})
+export class OrchestratorServiceModule {}
+```
+
+## Configuration
+
+The orchestrator is configured through:
+- Module imports in the main application
+- Task registration during initialization
+- Dependency definitions in individual tasks
+- Service injection through NestJS dependency injection
+
+## Usage Example
+
+```ts
+// Execute facial authentication
+const result = await orchestrator.runAll({
+  stringA: "user_template_1",
+  stringB: "user_template_2"
+});
+
+// Result contains authentication score and verification status
+console.log(result[0].content.facialAuthResult);
+```
+
+## File Structure
+
+```
+src/modules/orchestrator/
+├── orchestrator.module.ts
+├── controllers/
+│   ├── controllers.module.ts
+│   └── task.controller.ts
+├── service/
+│   ├── orchestrator-service.module.ts
+│   ├── orchestrator.service.ts
+│   └── utils/
+│       └── task-initializer.util.ts
+└── tasks/
+    ├── tasks.module.ts
+    ├── task.abstract.ts
+    ├── facial-auth-task.ts
+    └── types/
+        └── task-result.interface.ts
+```
+
+## Dependencies
+
+- **NestJS**: Core framework for module system and dependency injection
+- **RxJS**: Reactive programming for task execution and data flow
+- **Toposort**: Library for topological sorting of task dependencies
+- **FacialAuthService**: Service for biometric authentication
+- **HttpConsumerService**: Service for external HTTP requests
