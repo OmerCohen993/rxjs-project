@@ -13,11 +13,8 @@ import * as toposort from 'toposort';
 import { Task, tasks } from '../tasks/index';
 import { TaskResult } from '../tasks/types/task-result.interface';
 import { initializeTasks } from './utils/task-initializer.util';
-import { StringCompressionService } from '../../string-compression/service/string-compression.service';
-import { StringUpperClassService } from '../../string-upper-class/service/string-upper-class.service';
-import { createTaskA } from '../tasks/task-a';
-import { createTaskB } from '../tasks/task-b';
-import { taskC, taskD, taskE } from '../tasks/index';
+import { FacialAuthService } from '../../facial-auth/facial-auth.service';
+import { createFacialAuthTask } from '../tasks/facial-auth-task';
 
 @Injectable()
 export class OrchestratorService implements OnModuleInit {
@@ -25,20 +22,18 @@ export class OrchestratorService implements OnModuleInit {
   private taskMap = new Map<string, Task>();
 
   constructor(
-    private readonly stringCompressionService: StringCompressionService,
-    private readonly stringUpperClassService: StringUpperClassService
+    private readonly facialAuthService: FacialAuthService
   ) {}
 
   onModuleInit() {
-    // Create task instances with dependency injection
-    const taskA = createTaskA(this.stringCompressionService);
-    const taskB = createTaskB(this.stringUpperClassService);
-    const allTasks = [taskA, taskB, taskC, taskD, taskE];
+    // Create only FacialAuthTask
+    const facialAuthTask = createFacialAuthTask(this.facialAuthService);
+    const allTasks = [facialAuthTask];
     
     this.order = initializeTasks(allTasks, this.taskMap);
   }
 
-  runAll(initialInput: { id: string; idVerification: string }): Observable<TaskResult[]> {
+  runAll(initialInput: { stringA: string; stringB: string }): Observable<TaskResult[]> {
     const cache = new Map<string, Observable<TaskResult>>();
     const accumulatedData = new Map<string, any>();
 
@@ -48,7 +43,7 @@ export class OrchestratorService implements OnModuleInit {
     );
   }
 
-  runAllFinal(initialInput: { id: string; idVerification: string }): Observable<any> {
+  runAllFinal(initialInput: { stringA: string; stringB: string }): Observable<any> {
     const cache = new Map<string, Observable<TaskResult>>();
     const accumulatedData = new Map<string, any>();
     
@@ -74,68 +69,9 @@ export class OrchestratorService implements OnModuleInit {
     );
   }
 
-  private createFinalAnswer(results: TaskResult[], accumulatedData: Map<string, any>): any {
-    const finalAnswer: any = {
-      originalInput: {
-        id: accumulatedData.get('initialInput')?.id || 'unknown',
-        idVerification: accumulatedData.get('initialInput')?.idVerification || 'unknown'
-      }
-    };
-
-    // Add results from each successful task - extract only essential data
-    results.forEach(result => {
-      if (result.status === 'success') {
-        const taskName = result.name;
-        const taskContent = result.content;
-        
-        switch (taskName) {
-          case 'A':
-            finalAnswer.compression = taskContent.compressionResult;
-            break;
-          case 'B':
-            finalAnswer.upperCase = taskContent.upperResult;
-            break;
-          case 'C':
-            // Extract only the essential C result data
-            finalAnswer.taskCResult = {
-              name: taskContent.name,
-              content: taskContent.content,
-              status: taskContent.status
-            };
-            break;
-          case 'D':
-            // Extract only the essential D result data
-            finalAnswer.taskDResult = {
-              name: taskContent.name,
-              content: taskContent.content,
-              status: taskContent.status
-            };
-            break;
-          case 'E':
-            // Extract only the essential E result data
-            finalAnswer.taskEResult = {
-              name: taskContent.name,
-              content: taskContent.content,
-              status: taskContent.status
-            };
-            break;
-          default:
-            finalAnswer[`task${taskName}Result`] = {
-              name: taskContent.name,
-              content: taskContent.content,
-              status: taskContent.status
-            };
-        }
-      }
-    });
-
-    return finalAnswer;
-  }
-
-  runTask(taskName: string, initialInput: { id: string; idVerification: string }): Observable<TaskResult> {
+  runTask(taskName: string, initialInput: { stringA: string; stringB: string }): Observable<TaskResult> {
     const cache = new Map<string, Observable<TaskResult>>();
     const accumulatedData = new Map<string, any>();
-    console.log(cache)
     return this.runTaskInternal(taskName, cache, initialInput, accumulatedData);
   }
 
@@ -221,14 +157,12 @@ export class OrchestratorService implements OnModuleInit {
 
         return task.run(taskInputWithAccumulatedData).pipe(
           map(data => {
-            const duration = Date.now() - startTime;
-            
             // Store this task's result in accumulated data
             const result = {
               name: task.name,
               content: data,
               status: data?.status || 'success',
-              durationMs: duration,
+              durationMs: Date.now() - startTime,
             } as TaskResult;
             
             // Add to accumulated data for future tasks
@@ -254,6 +188,37 @@ export class OrchestratorService implements OnModuleInit {
 
     cache.set(name, result$);
     return result$;
+  }
+
+  private createFinalAnswer(results: TaskResult[], accumulatedData: Map<string, any>): any {
+    const finalAnswer: any = {
+      originalInput: {
+        stringA: accumulatedData.get('initialInput')?.stringA || 'unknown',
+        stringB: accumulatedData.get('initialInput')?.stringB || 'unknown'
+      }
+    };
+
+    // Add results from each successful task - extract only essential data
+    results.forEach(result => {
+      if (result.status === 'success') {
+        const taskName = result.name;
+        const taskContent = result.content;
+        
+        switch (taskName) {
+          case 'FacialAuth':
+            finalAnswer.facialAuth = taskContent.facialAuthResult;
+            break;
+          default:
+            finalAnswer[`task${taskName}Result`] = {
+              name: taskContent.name,
+              content: taskContent.content,
+              status: taskContent.status
+            };
+        }
+      }
+    });
+
+    return finalAnswer;
   }
 
   getTaskInfo() {

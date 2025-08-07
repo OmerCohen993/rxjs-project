@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { OrchestratorService } from './orchestrator.service';
 import { TasksModule } from '../tasks/tasks.module';
-import { StringCompressionServiceModule } from '../../string-compression/service/string-compression-service.module';
-import { StringUpperClassServiceModule } from '../../string-upper-class/service/string-upper-class-service.module';
+import { FacialAuthModule } from '../../facial-auth/facial-auth.module';
 
 @Module({
-  imports: [TasksModule, StringCompressionServiceModule, StringUpperClassServiceModule],
+  imports: [
+    TasksModule, 
+    FacialAuthModule
+  ],
   providers: [OrchestratorService],
   exports: [OrchestratorService],
 })

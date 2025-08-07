@@ -25,7 +25,10 @@ export class TaskController {
       );
     }
 
-    return this.orchestrator.runAll({ id, idVerification }).pipe(
+    // Convert to the expected format
+    const facialAuthParams = { stringA: id, stringB: idVerification };
+
+    return this.orchestrator.runAll(facialAuthParams).pipe(
       catchError(err => {
         throw new HttpException(
           `Orchestration failed: ${err.message}`,
@@ -46,7 +49,10 @@ export class TaskController {
       );
     }
 
-    return this.orchestrator.runAllFinal({ id, idVerification }).pipe(
+    // Convert to the expected format
+    const facialAuthParams = { stringA: id, stringB: idVerification };
+
+    return this.orchestrator.runAllFinal(facialAuthParams).pipe(
       catchError(err => {
         throw new HttpException(
           `Orchestration failed: ${err.message}`,
@@ -70,7 +76,10 @@ export class TaskController {
       );
     }
 
-    return this.orchestrator.runTask(taskName, { id, idVerification }).pipe(
+    // Convert to the expected format
+    const facialAuthParams = { stringA: id, stringB: idVerification };
+
+    return this.orchestrator.runTask(taskName, facialAuthParams).pipe(
       catchError(err => {
         throw new HttpException(
           `Task ${taskName} failed: ${err.message}`,

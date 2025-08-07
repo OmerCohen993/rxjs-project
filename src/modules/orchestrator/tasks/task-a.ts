@@ -25,4 +25,5 @@ export class TaskA extends Task<any> {
 }
 
 // We'll need to create the instance with dependency injection
-export const createTaskA = (stringCompressionService: StringCompressionService) => new TaskA(stringCompressionService); 
+export const createTaskA = (stringCompressionService: StringCompressionService) => new TaskA(stringCompressionService);
+
