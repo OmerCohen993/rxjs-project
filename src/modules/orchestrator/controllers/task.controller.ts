@@ -16,7 +16,7 @@ export class TaskController {
 
   @Get('run')
   runAll(@Query() params: TaskRunParams): Observable<TaskResult[]> {
-    const { id, idVerification } = params;
+    const { id, idVerification }: TaskRunParams = params;
     
     if (!id || !idVerification) {
       throw new HttpException(
